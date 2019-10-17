@@ -17,7 +17,7 @@ public abstract class Mapper<T> implements Runnable {
         this.data = data;
     }
 
-    abstract void map(T data, MultiThreadContext context);
+    protected abstract void map(T data, MultiThreadContext context);
 
     private MapResource resource = null;
 
@@ -27,6 +27,7 @@ public abstract class Mapper<T> implements Runnable {
         this.context = context;
     }
 
+    @Override
     public void run() {
         map(data, context);
         executor.batchCompleted(this);

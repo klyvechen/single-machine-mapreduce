@@ -8,7 +8,7 @@ public interface MapResource<T> {
 
     boolean nextBatch();
 
-    boolean finished();
+    boolean isFinished();
 
     void setFinished();
 

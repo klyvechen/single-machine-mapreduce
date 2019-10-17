@@ -28,14 +28,19 @@ public class MapperExecutor<T> {
     }
 
     public void processMultiThreadBatch() {
-        if (mapResource == null)
+        if (mapResource == null) {
+            logger.error("MapResource is null => return");
             return;
-        if (mapResource.finished())
+        }
+        if (mapResource.isFinished()) {
+            logger.error("MapResource finished => return");
             return;
+        }
         if (mapResource.nextBatch()) {
             MapperData<T> dataToMap = new MapperData<>();
             dataToMap.setData(mapResource.getBatchData());
             dataToMap.addObserver((Observable o, Object arg) -> {
+                        logger.debug("Observer is notified:" + arg );
                         Mapper<T> mapper = (Mapper) arg;
                         mapper.setup(((MapperData<T>) o).getData());
                         mapper.setContext(context);
@@ -45,6 +50,7 @@ public class MapperExecutor<T> {
             );
             Mapper mapper = mapperPool.getAvailableMapper();
             mapperPool.addTask(dataToMap);
+            logger.debug("Mapper :" + mapper);
             if (mapper != null) {
                 dataToMap.notifyObservers(mapper);
                 processMultiThreadBatch();
@@ -56,6 +62,7 @@ public class MapperExecutor<T> {
     }
 
     public void batchCompleted(Mapper<T> mapper) {
+        logger.debug("Mapper completed: " + mapper);
         mapperPool.recedeMapper(mapper);
         mapperPool.doTask(mapper);
         processMultiThreadBatch();

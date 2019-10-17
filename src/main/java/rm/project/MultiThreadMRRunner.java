@@ -34,29 +34,36 @@ public class MultiThreadMRRunner<MD extends MapResource, RD> {
 
     private MD dataToMap;
 
-    private MultiThreadContext context = new MultiThreadContext();
-
     private int mapperAmount;
 
-    private int reduceAmountr;
+    private int reduceAmount;
 
     private Observable waitForThread;
 
     private MapResource mapResource;
 
+    final private MultiThreadContext context = new MultiThreadContext();
 
     private void setupMapperExecutor() throws NoSuchMethodException, Exception{
+        logger.debug("mapperAmount: " + mapperAmount);
+        logger.debug("context: " + context);
         mapperExecutor = new MapperExecutor();
+        mapperExecutor.setResource(mapResource);
         mapperExecutor.setMapperPool(mapperAmount, mapperClazz);
         mapperExecutor.setContext(context);
     }
 
     public void execute() throws NoSuchMethodException, Exception {
-        if (!validateProperties())
-            return;
+        logger.info("Start to execute the runner.");
+//        if (!validateProperties())
+//            return;
         if (mapperExecutor == null)
             setupMapperExecutor();
         mapperExecutor.processMultiThreadBatch();
+    }
+
+    public void setMapperAmount(int mapperAmount) {
+        this.mapperAmount = mapperAmount;
     }
 
     private boolean validateProperties() {
