@@ -1,4 +1,9 @@
 package rm.project.reduce;
 
-public interface Reducer {
+import rm.project.context.MultiThreadContext;
+
+import java.util.List;
+
+public interface Reducer<MKey, MValue, RKey, RValue> {
+    void reduce(MKey key, List<MValue> value, MultiThreadContext<MKey ,MValue , RKey, RValue> context);
 }

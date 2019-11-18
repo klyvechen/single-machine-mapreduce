@@ -1,23 +1,45 @@
 package rm.project.map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rm.project.context.MultiThreadContext;
 import rm.project.resource.MapResource;
+import rm.project.resource.MapResourcePage;
 
-public abstract class Mapper<T> implements Runnable {
+import java.util.List;
+
+public abstract class Mapper<MKey, MValue> implements Runnable {
+    Logger logger = LoggerFactory.getLogger(Mapper.class);
+
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return this.name;
+    }
 
     private MapperExecutor executor = null;
-
-    private T data;
 
     void setExecutor(MapperExecutor executor) {
         this.executor = executor;
     }
 
-    void setup(T data) {
-        this.data = data;
+    private MapResourcePage<MValue> resourcePage = null;
+
+    private MapResource<MValue> mapResource = null;
+
+    void setResourcePage(MapResourcePage resourcePage) {
+        this.resourcePage = resourcePage;
     }
 
-    protected abstract void map(T data, MultiThreadContext context);
+    void setup(MapResource<MValue> mapResource) {
+        this.mapResource = mapResource;
+    }
+
+    protected abstract void map(List<MValue> data, MultiThreadContext context);
 
     private MapResource resource = null;
 
@@ -29,7 +51,13 @@ public abstract class Mapper<T> implements Runnable {
 
     @Override
     public void run() {
-        map(data, context);
+        final List<MValue> data = resourcePage.getData();
+        if (data.size() == 0) {
+            mapResource.setFinished();
+        } else {
+            map(data, context);
+            logger.debug("Executor to be notify");
+        }
         executor.batchCompleted(this);
     }
 }

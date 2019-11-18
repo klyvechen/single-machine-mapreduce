@@ -2,19 +2,20 @@ package rm.project.map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rm.project.resource.MapResourcePage;
 
 import java.util.Observable;
 
 public class MapperData<T> extends Observable {
     Logger logger = LoggerFactory.getLogger(MapperData.class);
-    private T data;
+    private MapResourcePage<T> page;
 
-    public T getData() {
-        return this.data;
+    public MapResourcePage<T> getPage() {
+        return this.page;
     }
 
-    public void setData(T data) {
-        this.data = data;
+    public void setPage(MapResourcePage<T> page) {
+        this.page = page;
     }
 
     @Override

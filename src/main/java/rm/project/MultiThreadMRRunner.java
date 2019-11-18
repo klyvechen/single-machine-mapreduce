@@ -5,49 +5,46 @@ import org.slf4j.LoggerFactory;
 import rm.project.context.MultiThreadContext;
 import rm.project.map.Mapper;
 import rm.project.map.MapperExecutor;
+import rm.project.map.SingleThreadResourceMapperExecutor;
 import rm.project.reduce.Reducer;
 import rm.project.resource.MapResource;
 
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Observable;
-import java.util.Set;
 
 
 /**
  * MultiThreadMRRunner為使用多執行緒去執行Map Reduce,
  * 執行工作順序為, 從resource取得下一筆批次的資料送給Mapper去做把資料map起來, 最後將所有mapper的資料做merge, 最後進行將資料merge起來.
- * @param <MD>
- * @param <RD>
+ * @param <MKey>
+ * @param <MValue>
+ * @param <RKey>
+ * @param <RValue>
  */
-public class MultiThreadMRRunner<MD extends MapResource, RD> {
-    Logger logger = LoggerFactory.getLogger(MapperExecutor.class);
+public class MultiThreadMRRunner<MKey, MValue, RKey, RValue> {
+    Logger logger = LoggerFactory.getLogger(MultiThreadMRRunner.class);
 
-    private Class mapperClazz;
+    private Class<Mapper> mapperClazz;
 
-    private Class reducerClass;
+    private Class<Reducer> reducerClass;
 
     private MapperExecutor mapperExecutor = null;
 
-    private Set<Mapper> idleMappers = new HashSet<Mapper>();
-
-    private Set<Reducer> idleReducers = new HashSet<Reducer>();
-
-    private MD dataToMap;
-
     private int mapperAmount;
-
-    private int reduceAmount;
-
-    private Observable waitForThread;
 
     private MapResource mapResource;
 
     final private MultiThreadContext context = new MultiThreadContext();
 
+    public MultiThreadContext<MKey, MValue, RKey, RValue> getContext() {
+        return context;
+    }
+
     private void setupMapperExecutor() throws NoSuchMethodException, Exception{
         logger.debug("mapperAmount: " + mapperAmount);
         logger.debug("context: " + context);
-        mapperExecutor = new MapperExecutor();
+        mapperExecutor = new SingleThreadResourceMapperExecutor();
         mapperExecutor.setResource(mapResource);
         mapperExecutor.setMapperPool(mapperAmount, mapperClazz);
         mapperExecutor.setContext(context);
@@ -55,11 +52,23 @@ public class MultiThreadMRRunner<MD extends MapResource, RD> {
 
     public void execute() throws NoSuchMethodException, Exception {
         logger.info("Start to execute the runner.");
-//        if (!validateProperties())
-//            return;
+        if (!validateProperties())
+            return;
         if (mapperExecutor == null)
             setupMapperExecutor();
         mapperExecutor.processMultiThreadBatch();
+        mapperExecutor.mergeMaps();
+        logger.info("map result key size" + context.getMapResultMap().keySet().size());
+        Reducer<MKey, MValue, RKey,RValue> reducer = reducerClass.getConstructor().newInstance();
+        Map<MKey, List<MValue>> reduceMap = context.getMapResultMap();
+        int i = 0;
+        for (MKey key: reduceMap.keySet()) {
+            reducer.reduce(key, reduceMap.get(key), context);
+            if (++i % 500 == 0) {
+                logger.info(i + " items is reduced!");
+            }
+        }
+        logger.info("Map reduce completed!");
     }
 
     public void setMapperAmount(int mapperAmount) {
@@ -70,7 +79,7 @@ public class MultiThreadMRRunner<MD extends MapResource, RD> {
         return (mapperClazz != null) && (reducerClass != null) && (mapResource != null);
     }
 
-    public MultiThreadMRRunner(Class mapper, Class reducer, MapResource resource) {
+    public MultiThreadMRRunner(Class<Mapper> mapper, Class<Reducer> reducer, MapResource resource) {
         this.mapperClazz = mapper;
         this.reducerClass = reducer;
         this.mapResource = resource;
