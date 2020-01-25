@@ -35,13 +35,23 @@ public class MultiThreadMRRunner<MKey, MValue, RKey, RValue> {
 
     private MapResource mapResource;
 
+    private Reducer<MKey, MValue, RKey,RValue> reducer;
+
     final private MultiThreadContext context = new MultiThreadContext();
 
     public MultiThreadContext<MKey, MValue, RKey, RValue> getContext() {
         return context;
     }
 
-    private void setupMapperExecutor() throws NoSuchMethodException, Exception{
+    public void init() throws NoSuchMethodException, Exception {
+        reducer = reducerClass.getConstructor().newInstance();
+    }
+
+    public Reducer<MKey, MValue, RKey,RValue> getReducer() {
+        return reducer;
+    }
+
+    private void setupMapperExecutor() throws NoSuchMethodException, Exception {
         logger.debug("mapperAmount: " + mapperAmount);
         logger.debug("context: " + context);
         mapperExecutor = new SingleThreadResourceMapperExecutor();
@@ -59,12 +69,11 @@ public class MultiThreadMRRunner<MKey, MValue, RKey, RValue> {
         mapperExecutor.processMultiThreadBatch();
         mapperExecutor.mergeMaps();
         logger.info("map result key size" + context.getMapResultMap().keySet().size());
-        Reducer<MKey, MValue, RKey,RValue> reducer = reducerClass.getConstructor().newInstance();
         Map<MKey, List<MValue>> reduceMap = context.getMapResultMap();
         int i = 0;
         for (MKey key: reduceMap.keySet()) {
             reducer.reduce(key, reduceMap.get(key), context);
-            if (++i % 500 == 0) {
+            if (++i % 10000 == 0) {
                 logger.info(i + " items is reduced!");
             }
         }
