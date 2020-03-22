@@ -68,7 +68,7 @@ public class MultiThreadMRRunner<MKey, MValue, RKey, RValue> {
             setupMapperExecutor();
         mapperExecutor.processMultiThreadBatch();
         mapperExecutor.mergeMaps();
-        logger.info("map result key size" + context.getMapResultMap().keySet().size());
+        logger.info("map result key size " + context.getMapResultMap().keySet().size());
         Map<MKey, List<MValue>> reduceMap = context.getMapResultMap();
         int i = 0;
         for (MKey key: reduceMap.keySet()) {

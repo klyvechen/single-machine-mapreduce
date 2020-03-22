@@ -37,6 +37,8 @@ abstract class AbstractMapperExecutor<MKey, MValue> implements MapperExecutor<MK
         Map<MKey, List<MValue>> result = context.getMapResultMap();
         for (Mapper mapper: mapperPool.getAllMaps()) {
             Map<MKey, List<MValue>> map = context.getRunnableMap(mapper);
+            if (map == null)
+                continue;
             for (MKey mkey : map.keySet()) {
                 if (result.get(mkey) == null) {
                     result.put(mkey, new ArrayList<>());
